@@ -13,6 +13,7 @@ const {
 } = require("@discordjs/voice");
 
 const { spawn } = require("child_process");
+const ffmpegPath = require("ffmpeg-static"); // 👈 use bundled ffmpeg
 
 const TOKEN = process.env.TOKEN;
 
@@ -20,7 +21,7 @@ const TOKEN = process.env.TOKEN;
 const GUILD_ID = "1396991590228037702";
 const CHANNEL_ID = "1445534277935697931";
 
-// YOUR RADIO STREAM (works with anything)
+// YOUR RADIO STREAM
 const RADIO_URL = "https://mira.streamerr.co/listen/fgstfm/radio.mp3";
 
 const client = new Client({
@@ -29,7 +30,6 @@ const client = new Client({
         GatewayIntentBits.GuildVoiceStates
     ]
 });
-
 
 client.once("ready", async () => {
     console.log(`${client.user.tag} is online.`);
@@ -60,9 +60,14 @@ client.once("ready", async () => {
     const player = createAudioPlayer();
 
     function startFFmpeg() {
+        if (!ffmpegPath) {
+            console.log("❌ ffmpeg-static binary not found");
+            return null;
+        }
+
         console.log("▶️ Starting FFmpeg stream...");
 
-        const ffmpeg = spawn("ffmpeg", [
+        const ffmpeg = spawn(ffmpegPath, [
             "-reconnect", "1",
             "-reconnect_streamed", "1",
             "-reconnect_delay_max", "5",
@@ -74,35 +79,48 @@ client.once("ready", async () => {
         ]);
 
         ffmpeg.stderr.on("data", data => {
-            // Uncomment for debugging:
+            // Uncomment to debug ffmpeg:
             // console.log("FFmpeg:", data.toString());
         });
 
-        ffmpeg.on("close", () => {
-            console.log("❌ FFmpeg closed. Restarting...");
-            startFFmpeg();
+        ffmpeg.on("error", err => {
+            console.log("❌ FFmpeg error:", err.message);
+        });
+
+        ffmpeg.on("close", code => {
+            console.log(`❌ FFmpeg closed with code ${code}. Restarting...`);
+            const newStream = startFFmpeg();
+            if (newStream) {
+                player.play(createAudioResource(newStream, {
+                    inputType: StreamType.Raw
+                }));
+            }
         });
 
         return ffmpeg.stdout;
     }
 
-    // FIRST PLAY
-    const stream = startFFmpeg();
+    let stream = startFFmpeg();
+    if (!stream) {
+        console.log("❌ Could not start FFmpeg stream.");
+        return;
+    }
 
     player.play(createAudioResource(stream, {
         inputType: StreamType.Raw
     }));
 
-    // Restart if idle
     player.on("idle", () => {
         console.log("🔁 Player idle — restarting FFmpeg.");
         const newStream = startFFmpeg();
-        player.play(createAudioResource(newStream, {
-            inputType: StreamType.Raw
-        }));
+        if (newStream) {
+            player.play(createAudioResource(newStream, {
+                inputType: StreamType.Raw
+            }));
+        }
     });
 
-    player.on("error", err => console.log("❌ Audio player error:", err));
+    player.on("error", err => console.log("❌ Audio player error:", err.message));
 
     connection.subscribe(player);
 
