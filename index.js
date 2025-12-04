@@ -22,7 +22,7 @@ const GUILD_ID = "1396991590228037702";
 const CHANNEL_ID = "1445534277935697931";
 
 // YOUR RADIO STREAM
-const RADIO_URL = "https://mira.streamerr.co/listen/fgstfm/radio.mp3";
+const RADIO_URL = "https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one";
 
 const client = new Client({
     intents: [
@@ -128,3 +128,4 @@ client.once("ready", async () => {
 });
 
 client.login(TOKEN);
+
