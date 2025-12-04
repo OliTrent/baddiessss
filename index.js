@@ -17,10 +17,13 @@ const ffmpegPath = require("ffmpeg-static");
 
 const TOKEN = process.env.TOKEN;
 
+// YOUR SERVER + CHANNEL
 const GUILD_ID = "1396991590228037702";
 const CHANNEL_ID = "1445534277935697931";
 
-let RADIO_URL = "https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one"; // test
+// ---- TEST STREAM (HTTP = works on Railway) ----
+// When confirmed working, we replace this with FGSTFM.
+let RADIO_URL = "http://icecast.omroep.nl/radio1-bb-mp3";
 
 const client = new Client({
     intents: [
@@ -71,9 +74,12 @@ client.once("ready", async () => {
             "pipe:1"
         ]);
 
-        ffmpeg.on("close", () => {
-            console.log("❌ FFmpeg closed. Restarting...");
-            player.stop();
+        ffmpeg.on("error", err => {
+            console.log("❌ FFmpeg error:", err.message);
+        });
+
+        ffmpeg.on("close", code => {
+            console.log(`❌ FFmpeg closed with code ${code}. Restarting...`);
             const newStream = startFFmpeg();
             if (newStream) {
                 player.play(createAudioResource(newStream, {
@@ -105,7 +111,7 @@ client.once("ready", async () => {
 
     connection.subscribe(player);
 
-    console.log("🎶 Radio stream is now expected to play!");
+    console.log("🎶 Radio stream is now playing via FFmpeg!");
 });
 
 client.login(TOKEN);
