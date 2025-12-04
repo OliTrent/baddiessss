@@ -13,16 +13,14 @@ const {
 } = require("@discordjs/voice");
 
 const { spawn } = require("child_process");
-const ffmpegPath = require("ffmpeg-static"); // 👈 use bundled ffmpeg
+const ffmpegPath = require("ffmpeg-static");
 
 const TOKEN = process.env.TOKEN;
 
-// YOUR SERVER + CHANNEL
 const GUILD_ID = "1396991590228037702";
 const CHANNEL_ID = "1445534277935697931";
 
-// YOUR RADIO STREAM
-const RADIO_URL = "https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one";
+let RADIO_URL = "https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one"; // test
 
 const client = new Client({
     intents: [
@@ -49,9 +47,9 @@ client.once("ready", async () => {
     });
 
     try {
-        console.log("⏳ Waiting for READY state...");
-        await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
-        console.log("🎉 Voice connection ready.");
+        console.log("⏳ Waiting for CONNECTING state...");
+        await entersState(connection, VoiceConnectionStatus.Connecting, 20000);
+        console.log("🎉 Voice connection established!");
     } catch (error) {
         console.log("❌ Failed to connect:", error);
         return;
@@ -60,11 +58,6 @@ client.once("ready", async () => {
     const player = createAudioPlayer();
 
     function startFFmpeg() {
-        if (!ffmpegPath) {
-            console.log("❌ ffmpeg-static binary not found");
-            return null;
-        }
-
         console.log("▶️ Starting FFmpeg stream...");
 
         const ffmpeg = spawn(ffmpegPath, [
@@ -78,17 +71,9 @@ client.once("ready", async () => {
             "pipe:1"
         ]);
 
-        ffmpeg.stderr.on("data", data => {
-            // Uncomment to debug ffmpeg:
-            // console.log("FFmpeg:", data.toString());
-        });
-
-        ffmpeg.on("error", err => {
-            console.log("❌ FFmpeg error:", err.message);
-        });
-
-        ffmpeg.on("close", code => {
-            console.log(`❌ FFmpeg closed with code ${code}. Restarting...`);
+        ffmpeg.on("close", () => {
+            console.log("❌ FFmpeg closed. Restarting...");
+            player.stop();
             const newStream = startFFmpeg();
             if (newStream) {
                 player.play(createAudioResource(newStream, {
@@ -101,10 +86,6 @@ client.once("ready", async () => {
     }
 
     let stream = startFFmpeg();
-    if (!stream) {
-        console.log("❌ Could not start FFmpeg stream.");
-        return;
-    }
 
     player.play(createAudioResource(stream, {
         inputType: StreamType.Raw
@@ -113,19 +94,18 @@ client.once("ready", async () => {
     player.on("idle", () => {
         console.log("🔁 Player idle — restarting FFmpeg.");
         const newStream = startFFmpeg();
-        if (newStream) {
-            player.play(createAudioResource(newStream, {
-                inputType: StreamType.Raw
-            }));
-        }
+        player.play(createAudioResource(newStream, {
+            inputType: StreamType.Raw
+        }));
     });
 
-    player.on("error", err => console.log("❌ Audio player error:", err.message));
+    player.on("error", err => {
+        console.log("❌ Player error:", err.message);
+    });
 
     connection.subscribe(player);
 
-    console.log("🎶 Radio stream is now playing via FFmpeg!");
+    console.log("🎶 Radio stream is now expected to play!");
 });
 
 client.login(TOKEN);
-
