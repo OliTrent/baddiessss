@@ -1,4 +1,5 @@
 require("dotenv").config();
+
 const {
     Client,
     GatewayIntentBits
@@ -14,7 +15,6 @@ const {
 } = require("@discordjs/voice");
 
 const { spawn } = require("child_process");
-const ffmpegPath = require("ffmpeg-static");
 
 const TOKEN = process.env.TOKEN;
 
@@ -22,8 +22,7 @@ const TOKEN = process.env.TOKEN;
 const GUILD_ID = "1396991590228037702";
 const CHANNEL_ID = "1445534277935697931";
 
-// ---- TEST STREAM (HTTP = works on Railway) ----
-// When confirmed working, we replace this with FGSTFM.
+// FGSTFM STREAM
 let RADIO_URL = "https://mira.streamerr.co/listen/fgstfm/radio.mp3";
 
 const client = new Client({
@@ -56,6 +55,7 @@ client.once("ready", async () => {
         console.log("🎉 Voice connection established!");
     } catch (error) {
         console.log("❌ Failed to connect:", error);
+        console.error(error);
         return;
     }
 
@@ -64,7 +64,7 @@ client.once("ready", async () => {
     function startFFmpeg() {
         console.log("▶️ Starting FFmpeg stream...");
 
-        const ffmpeg = spawn(ffmpegPath, [
+        const ffmpeg = spawn("ffmpeg", [
             "-reconnect", "1",
             "-reconnect_streamed", "1",
             "-reconnect_delay_max", "5",
@@ -74,6 +74,11 @@ client.once("ready", async () => {
             "-ac", "2",
             "pipe:1"
         ]);
+
+        ffmpeg.stderr.on("data", data => {
+            // Uncomment if you want to see ffmpeg logs:
+            // console.log("FFmpeg:", data.toString());
+        });
 
         ffmpeg.on("error", err => {
             console.log("❌ FFmpeg error:", err.message);
@@ -116,4 +121,3 @@ client.once("ready", async () => {
 });
 
 client.login(TOKEN);
-
