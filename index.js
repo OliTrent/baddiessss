@@ -23,7 +23,7 @@ const GUILD_ID = "1396991590228037702";
 const CHANNEL_ID = "1445534277935697931";
 
 // FGSTFM STREAM
-let RADIO_URL = "https://mira.streamerr.co/listen/fgstfm/radio.mp3";
+let RADIO_URL = "http://138.68.16.28/listen/fagstatefm/radio.mp3";
 
 const client = new Client({
     intents: [
@@ -121,3 +121,4 @@ client.once("ready", async () => {
 });
 
 client.login(TOKEN);
+
