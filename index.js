@@ -1,3 +1,4 @@
+require("dotenv").config();
 const {
     Client,
     GatewayIntentBits
@@ -23,7 +24,7 @@ const CHANNEL_ID = "1445534277935697931";
 
 // ---- TEST STREAM (HTTP = works on Railway) ----
 // When confirmed working, we replace this with FGSTFM.
-let RADIO_URL = "http://icecast.omroep.nl/radio1-bb-mp3";
+let RADIO_URL = "https://mira.streamerr.co/listen/fgstfm/radio.mp3";
 
 const client = new Client({
     intents: [
@@ -115,3 +116,4 @@ client.once("ready", async () => {
 });
 
 client.login(TOKEN);
+
